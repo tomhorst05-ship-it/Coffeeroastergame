@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>The Coffee Lab: Final Edition</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #F5EFEB; color: #4A3B32; max-width: 1200px; margin: 0 auto; padding: 20px; box-sizing: border-box; user-select: none; -webkit-user-select: none; }
+        h1, h2, h3, h4 { color: #3E2723; margin-top: 0; }
+        .pos { color: #27AE60; font-weight: bold; }
+        .neg { color: #C0392B; font-weight: bold; }
+        .large-text { font-size: 1.2em; }
+        *:focus-visible { outline: 3px solid #D35400; outline-offset: 3px; border-radius: 4px; }
+        .dashboard { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; background: #2C3E50; color: #F8F9F9; padding: 20px; border-radius: 12px; box-shadow: 0 6px 12px rgba(0,0,0,0.15); margin-bottom: 20px; align-items: center; border: 4px solid #5D4037; }
+        .dash-rival-text { color: #FADBD8; }
+        .buzz-text { color: #F1C40F; font-weight: bold; }
+        .progress-bar-container { grid-column: span 5; }
+        .progress-bar { background: #D6CCC2; height: 14px; border-radius: 7px; overflow: hidden; margin-top: 5px; position: relative; border: inset 1px #B0A094; }
+        .fill-player { background: #8D6E63; height: 100%; width: 0%; transition: width 0.5s ease-out; position: absolute; z-index: 2; opacity: 0.95; }
+        .fill-rival { background: #E74C3C; height: 100%; width: 0%; transition: width 0.5s ease-out; position: absolute; z-index: 1; opacity: 0.7; }
+        .forecast-container { display: flex; gap: 10px; margin-bottom: 20px; }
+        .forecast-day { flex: 1; text-align: center; padding: 12px; border-radius: 10px; background: #EAE0D5; color: #5D4037; font-weight: 600; border: 2px solid transparent; transition: 0.3s; }
+        .forecast-day.active { background: #D35400; color: white; transform: scale(1.05); border-color: #A04000; box-shadow: 0 4px 8px rgba(211, 84, 0, 0.3); }
+        .weather-temp { font-size: 0.75em; opacity: 0.9; display: block; margin-top: 4px; }
+        .main-layout { display: grid; grid-template-columns: 1fr 1.6fr; gap: 20px; }
+        .panel { background: #FFFFFF; padding: 25px; border-radius: 15px; box-shadow: 0 4px 15px rgba(93, 64, 55, 0.08); margin-bottom: 20px; border: 1px solid #F0E6D2; }
+        .panel-header { background: #5D4037; color: white; margin: -25px -25px 15px -25px; padding: 15px 25px; border-radius: 15px 15px 0 0; }
+        .cam-box { background: #1A1A1A; height: 70px; border-radius: 8px; position: relative; overflow: hidden; border: 3px solid #333; margin-bottom: 20px; box-shadow: inset 0 0 10px rgba(0,0,0,0.8); }
+        .cam-label { position: absolute; top: 5px; left: 8px; color: #E74C3C; font-size: 0.7em; font-family: monospace; font-weight: bold; z-index: 10; animation: blink 1s infinite; }
+        .emoji-customer { position: absolute; font-size: 1.8em; bottom: 5px; left: -40px; }
+        .emoji-reaction { position: absolute; font-size: 0.6em; top: -15px; left: 5px; opacity: 0; }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+        @keyframes walkAcross { 0% { left: -40px; transform: scaleX(1); } 100% { left: 105%; transform: scaleX(1); } }
+        @keyframes walkInAndLeave { 0% { left: -40px; transform: scaleX(1); } 40% { left: 45%; transform: scaleX(1); } 50% { left: 45%; transform: scaleX(-1); } 100% { left: -40px; transform: scaleX(-1); } }
+        @keyframes floatUp { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-25px); } }
+        .control-row { margin-bottom: 12px; border-bottom: 1px dashed #D6CCC2; padding-bottom: 8px; }
+        .control-row.no-border { border-bottom: none; }
+        .control-label { display: flex; justify-content: space-between; font-weight: bold; font-size: 0.85em; color: #5D4037; width: 100%; cursor: pointer; }
+        input[type="range"] { width: 100%; height: 15px; accent-color: #D35400; cursor: pointer; }
+        input[type="number"], input[type="text"] { border: 2px solid #D6CCC2; border-radius: 6px; color: #4A3B32; padding: 10px; font-weight: bold; font-size: 1.1em; width: 100%; box-sizing: border-box; }
+        .action-btn { background: #D35400; color: white; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; transition: 0.2s; width: 100%; padding: 15px; font-size: 1.1em; min-height: 50px; }
+        .sys-btn { background: #5C6A6B; color: white; border: none; padding: 6px 10px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 0.75em; flex: 1; margin: 2px; }
+        .sys-btn.green { background: #1E8449; } 
+        .sys-btn.yellow { background: #D4AC0D; color: #3E2723; } 
+        .sys-btn.red { background: #A93226; } 
+        .cost-card { background: #FDFBF7; border: 2px solid #D6CCC2; border-radius: 10px; padding: 15px; margin-top: 15px; font-size: 0.9em; }
+        .metric-box { background: #FFFFFF; border: 1px solid #EAE0D5; padding: 15px; border-radius: 10px; margin: 15px 0; font-size: 0.9em; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02); }
+        .metric-row { display: flex; justify-content: space-between; margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px dashed #D6CCC2; }
+        .metric-row:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+        .quote-box { font-style: italic; color: #5D4037; background: #FFF3E0; padding: 15px; border-left: 4px solid #D35400; text-align: left; margin-bottom: 15px; font-size: 0.9em; border-radius: 4px; }
+        .tabs { display: flex; gap: 5px; margin-bottom: 15px; overflow-x: auto; }
+        .tab-btn { flex: 1; padding: 12px; border: none; background: #EAE0D5; border-radius: 8px; cursor: pointer; font-size: 0.9em; font-weight: bold; color: #5D4037; white-space: nowrap; }
+        .tab-btn.active { background: #5D4037; color: #F5EFEB; }
+        .tab-btn.rival-tab { background: #FADBD8; color: #C0392B; }
+        .tab-btn.rival-tab.active { background: #C0392B; color: white; }
+        .tab-btn.biz-tab { background: #D4E6F1; color: #2980B9; }
+        .tab-btn.biz-tab.active { background: #2980B9; color: white; }
+        .research-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
+        .research-item { background: #FDFBF7; padding: 15px; border-radius: 10px; border: 2px solid #EAE0D5; }
+        .tier-btn { width: 100%; margin: 5px 0; padding: 10px; font-size: 0.8em; cursor: pointer; background: #8D6E63; color: white; border: none; border-radius: 6px; font-weight: bold; }
+        .tier-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .reveal-math { font-size: 1.1em; color: #C0392B; font-weight: bold; margin-top: 10px; background: #FDEDEC; padding: 10px; border-radius: 6px; border: 1px dashed #E74C3C; text-align: center; font-family: monospace; }
+        .data-table { width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 0.85em; background: white; }
+        .data-table th, .data-table td { border: 1px solid #D6CCC2; padding: 6px; text-align: center; }
+        .data-table th { background: #EAE0D5; }
+        .sabotage-box { background: #FDEDEC; border: 2px solid #E74C3C; padding: 20px; border-radius: 10px; }
+        .business-box { background: #EAF2F8; border: 2px solid #2980B9; padding: 20px; border-radius: 10px; text-align: center; }
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(62, 39, 35, 0.85); z-index: 100; justify-content: center; align-items: center; overflow-y: auto; padding: 20px; box-sizing: border-box; }
+        .modal-content { background: #FDFBF7; padding: 30px; border-radius: 15px; max-width: 500px; width: 100%; position: relative; border-top: 10px solid #D35400; margin: auto; }
+        .modal-content.large-modal { max-width: 950px; }
+        .close-x { position: absolute; top: 15px; right: 20px; font-size: 1.5em; font-weight: bold; color: #5D4037; cursor: pointer; line-height: 1; background: transparent; border: none; padding: 5px; }
+        .table-container { max-height: 250px; overflow-y: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.85em; text-align: center; }
+        th { background: #5D4037; color: #F5EFEB; padding: 12px 8px; position: sticky; top: 0; cursor: pointer; user-select: none; }
+        .math-highlight { font-size: 1.2em; font-family: monospace; font-weight: bold; background: #eee; padding: 4px 8px; border-radius: 5px; display: inline-block; margin: 8px 0; }
+        .footer-container { display: flex; justify-content: center; gap: 15px; margin-top: 30px; padding-top: 20px; border-top: 2px dashed #D6CCC2; flex-wrap: wrap; }
+        .nav-link { display: inline-block; padding: 10px 20px; font-size: 0.9em; font-weight: bold; text-decoration: none; cursor: pointer; border: 2px solid #D6CCC2; border-radius: 8px; transition: 0.2s; background: #FDFBF7; color: #5D4037; }
+        .nav-link:hover { border-color: #5D4037; background: #EAE0D5; }
+        .nav-link.tech { border-color: transparent; background: transparent; color: #5C6A6B; font-weight: normal; }
+        @media (max-width: 850px) {
+            .main-layout { grid-template-columns: 1fr; }
+            .dashboard { grid-template-columns: repeat(3, 1fr); }
+            .progress-bar-container { grid-column: span 3; }
+            .research-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div id="welcomeModal" class="modal-overlay" style="background: #3E2723;" role="dialog" aria-modal="true" aria-labelledby="welcomeTitle">
+        <div class="modal-content large-modal" style="text-align:center; border-top-color: #27AE60;" tabindex="-1" id="welcomeContent">
+            <h1 id="welcomeTitle" style="color:#D35400;">☕ Welcome to The Coffee Lab</h1>
+            <p style="text-align:left; font-size:1.05em; line-height:1.6; color:#4A3B32;">You've just taken over a small, independent cafe across from corporate giant, <strong>Roaster Co.</strong></p>
+            <div class="quote-box" style="margin: 20px 0; font-size: 1.05em;">
+                <strong>The Stakes:</strong> The first shop to reach <strong>$15,000</strong> gets to buy the building. If Roaster Co. wins, you're out of a job.
+            </div>
+            <p style="text-align:left; font-size:1.05em; line-height:1.6; color:#4A3B32;">Analyze daily feedback, perfect recipes using algebra, and run Roaster Co. out of town.</p>
+            <div style="margin-top: 25px;">
+                <button class="action-btn" style="background:#27AE60; max-width: 300px; margin: 0 auto; display: block;" onclick="startGame()">Start Brewing</button>
+            </div>
+        </div>
+    </div>
+    <div id="winModal" class="modal-overlay" style="background: #1B4F72;">
+        <div class="modal-content large-modal" style="text-align:center; border-top-color: #F1C40F;">
+            <h1 style="color:#F39C12; font-size:2.5em;">🏆 VICTORY!</h1>
+            <p style="font-size:1.2em;">You reached <strong>$15,000</strong> and bought the building!</p>
+            <div class="metric-box" style="background:#FEF9E7; border: 2px solid #F1C40F; padding:20px; text-align:left;">
+                <p><strong>Total Days to Win:</strong> <span id="winDays">0</span></p>
+                <p><strong>First Perfect Recipe:</strong> <span id="winRecipeDay">Not found</span></p>
+                <p><strong>First Perfect Price:</strong> <span id="winPriceDay">Not found</span></p>
+            </div>
+            <button class="action-btn" onclick="hardReset()" style="margin-top: 15px;">Start a New Game</button>
+        </div>
+    </div>
+    <div id="lossModal" class="modal-overlay" style="background: #4A235A;">
+        <div class="modal-content large-modal" style="text-align:center; border-top-color: #C0392B;">
+            <h1 style="color:#C0392B; font-size:2.5em;">📉 FORCED CLOSURE</h1>
+            <p style="font-size:1.2em;">Roaster Co. reached <strong>$15,000</strong> first and bought the building.</p>
+            <button class="action-btn" style="background:#C0392B;" onclick="hardReset()">Try Again</button>
+        </div>
+    </div>
+    <div id="mathGuideModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="mathGuideTitle">
+        <div class="modal-content" style="border-top-color: #2980b9;" tabindex="-1" id="mathGuideContent">
+            <button class="close-x" aria-label="Close Math Guide" onclick="toggleModal('mathGuideModal', false)">&times;</button>
+            <h2 id="mathGuideTitle" style="color:#2C3E50; margin-top:0;">🧮 Math Formulas Guide</h2>
+            <div style="font-size: 0.9em; color: #4A3B32; text-align: left; line-height: 1.6;">
+                <h4 style="color:#2980b9; margin-bottom: 5px;">1. Using Symmetry (Midpoint)</h4>
+                <div class="math-highlight">x = (x&#8321; + x&#8322;) / 2</div>
+                <h4 style="color:#2980b9; margin-bottom: 5px;">2. Using Standard Form</h4>
+                <div class="math-highlight">x = -b / (2a)</div>
+                <h4 style="color:#2980b9; margin-bottom: 5px;">3. Using Vertex Form</h4>
+                <div class="math-highlight">Vertex = (h, k)</div>
+            </div>
+            <button class="action-btn" style="background:#2980b9; margin-top:15px;" onclick="toggleModal('mathGuideModal', false)">Back to Lab</button>
+        </div>
+    </div>
+    <div id="managerGuideModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="managerGuideTitle">
+        <div class="modal-content" style="border-top-color: #27AE60;" tabindex="-1" id="managerGuideContent">
+            <button class="close-x" aria-label="Close Manager's Guide" onclick="toggleModal('managerGuideModal', false)">&times;</button>
+            <h2 id="managerGuideTitle" style="color:#27AE60; margin-top:0;">📖 Manager's Rulebook</h2>
+            <div style="font-size: 0.9em; color: #4A3B32; text-align: left; line-height: 1.5;">
+                <p><strong>Goal:</strong> Reach $15,000 in your Bank before Roaster Co. does.</p>
+                <p><strong>☕ Brewing:</strong> Set Temperature, Sweetness, and Intensity. Match the weather to get a high Taste Score.</p>
+                <p><strong>🌦️ Weather:</strong> Demand shifts with Sunny, Heatwave, or Rainy days. Pay attention to the forecast!</p>
+                <p><strong>💵 Pricing:</strong> Set your price. High Taste Scores allow for higher prices. Avoid going over $20 (Boycott risk).</p>
+                <p><strong>📉 Expenses:</strong> $150 daily rent + ingredient costs per cup sold.</p>
+            </div>
+            <button class="action-btn" style="background:#27AE60; margin-top:15px;" onclick="toggleModal('managerGuideModal', false)">Let's Brew</button>
+        </div>
+    </div>
+    <div id="upgradeModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="upgradeModalTitle">
+        <div class="modal-content large-modal" style="border-top-color: #8E44AD;" tabindex="-1" id="upgradeModalContent">
+            <button class="close-x" aria-label="Close Research Lab" onclick="toggleModal('upgradeModal', false)">&times;</button>
+            <h1 id="upgradeModalTitle" style="color:#8E44AD; margin-bottom: 5px;">🔬 Advanced Research Lab</h1>
+            <div class="tabs" role="tablist" aria-label="Research Categories">
+                <button role="tab" aria-selected="true" class="tab-btn active" id="tabSunny" onclick="switchResearchTab('Sunny')">☀️ Sunny</button>
+                <button role="tab" aria-selected="false" class="tab-btn" id="tabHeatwave" onclick="switchResearchTab('Heatwave')">🔥 Heatwave</button>
+                <button role="tab" aria-selected="false" class="tab-btn" id="tabRainy" onclick="switchResearchTab('Rainy')">🌧️ Rainy</button>
+                <button role="tab" aria-selected="false" class="tab-btn rival-tab" id="tabRival" onclick="switchResearchTab('Rival')">🕵️ Espionage</button>
+                <button role="tab" aria-selected="false" class="tab-btn biz-tab" id="tabBusiness" onclick="switchResearchTab('Business')">📈 Business</button>
+            </div>
+            <div id="researchContainer" class="research-grid" aria-live="polite"></div>
+            <div id="sabotageContainer" style="display:none;" class="sabotage-box">
+                <h4 style="color:#C0392B;">Leak Fake Recipe</h4>
+                <label for="sabotageTemp" style="font-size:0.85em;">Give them a fake <strong>Temp (x)</strong>: <span id="sabWeatherUI"></span></label>
+                <input type="number" id="sabotageTemp" style="width:100px; padding:10px; margin-top:5px;" value="0">
+                <p style="font-size:0.8em; color:#922B21; margin-top:10px;">Suspicion threshold: <span id="sabThresholdUI"></span>.</p>
+            </div>
+            <div id="businessContainer" style="display:none;" class="business-box" aria-live="polite"></div>
+            <button class="action-btn" style="background:#5D4037; margin-top:20px;" onclick="toggleModal('upgradeModal', false)">Return to Shop</button>
+        </div>
+    </div>
+    <div id="reportModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="reportModalTitle">
+        <div class="modal-content" style="text-align: center;" tabindex="-1" id="reportModalContent">
+            <h2 id="reportModalTitle" style="margin-top:0;">Closing Time</h2>
+            <div id="modalWeather" style="font-weight:bold; color:#8D6E63; margin-bottom:15px;"></div>
+            <div id="modalSnobBlog" style="display:none; background:#E8DAEF; color:#6C3483; padding:10px; border-radius:8px; margin-bottom:15px; font-weight:bold; font-size:0.9em; border:1px dashed #9B59B6;"></div>
+            <div id="modalBadBlog" style="display:none; background:#FDEDEC; color:#C0392B; padding:10px; border-radius:8px; margin-bottom:15px; font-weight:bold; font-size:0.9em; border:1px dashed #E74C3C;">📉 Scathing review posted. Customers dropping tomorrow.</div>
+            <div id="modalPriceGouge" style="display:none; background:#F5B041; color:#7E5109; padding:10px; border-radius:8px; margin-bottom:15px; font-weight:bold; font-size:0.9em; border:1px dashed #B9770E;">🚨 BOYCOTT! Prices viral online. Empty shop tomorrow!</div>
+            <div class="quote-box" id="modalQuote"></div>
+            <div class="metric-box" style="text-align: left;">
+                <div class="metric-row"><strong>Taste Score:</strong> <span id="modalTaste" style="font-size:1.1em; font-weight:bold;">0</span></div>
+                <div class="metric-row"><span>Potential Customers:</span> <span id="modalPot">0</span></div>
+                <div class="metric-row" id="walkawayStandard"><span class="neg">Total Walkaways:</span> <span id="modalWalk" class="neg">0</span></div>
+                <div class="metric-row" id="walkawayAdvancedTaste" style="display:none;"><span class="neg" style="opacity: 0.8;">↳ Bad Taste:</span> <span id="modalWalkTaste" class="neg">0</span></div>
+                <div class="metric-row" id="walkawayAdvancedPrice" style="display:none; padding-bottom: 8px; border-bottom: 1px dashed #D6CCC2;"><span class="neg" style="opacity: 0.8;">↳ Price too High:</span> <span id="modalWalkPrice" class="neg">0</span></div>
+                <div class="metric-row" style="border-top: 1px solid #EAE0D5; padding-top: 8px; margin-top: 8px;"><span class="pos">Actual Sales:</span> <span id="modalSales" class="pos">0</span></div>
+            </div>
+            <button class="sys-btn" id="toggleBreakdownBtn" style="width: 100%; margin: 5px 0 15px 0; background: #BDC3C7; color: #3E2723; padding: 10px; display: none;" onclick="toggleBreakdown()">📊 Show Financial Breakdown</button>
+            <div id="financialBreakdown" style="display:none; background:#FDFBF7; border: 1px solid #D6CCC2; padding: 15px; border-radius: 8px; font-size: 0.85em; text-align: left; margin-bottom: 15px;">
+                <div class="metric-row"><span>Gross Revenue:</span> <strong class="pos" id="modalRev">$0.00</strong></div>
+                <div class="metric-row"><span>Ingredient Costs:</span> <strong class="neg" id="modalIngCost">-$0.00</strong></div>
+                <div class="metric-row"><span>Daily Rent:</span> <strong class="neg" id="modalRentCost">-$150.00</strong></div>
+            </div>
+            <div class="metric-box" style="background:#EAFBFF; border-color:#2980b9; text-align: left;">
+                <div class="metric-row" id="modalDonorRow" style="display:none; color:#8E44AD;"><span>Relief Grant:</span> <strong id="modalDonor">+$0.00</strong></div>
+                <div class="metric-row"><strong>Your Profit:</strong> <span id="modalNet" class="large-text">$0.00</span></div>
+                <div class="metric-row"><strong class="neg">Rival Profit:</strong> <span id="modalRivalNet" class="neg">$0.00</span></div>
+                <div id="sabotageResult" style="margin-top:10px; font-style:italic; font-size:0.9em; color:#D35400;"></div>
+            </div>
+            <button class="action-btn" onclick="closeDailyReport()">Open Shop Tomorrow ➡️</button>
+        </div>
+    </div>
+    <div id="leaderboardModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="leaderboardTitle">
+        <div class="modal-content" style="border-top-color:#F1C40F;" tabindex="-1" id="leaderboardContentBox">
+            <button class="close-x" aria-label="Close" onclick="toggleModal('leaderboardModal', false)">&times;</button>
+            <h1 id="leaderboardTitle" style="color:#D4AC0D; text-align:center;">🏆 Ranks</h1>
+            <div id="leaderboardContent"></div>
+            <button class="action-btn" style="background:#D4AC0D; color:#3E2723;" onclick="toggleModal('leaderboardModal', false)">Close</button>
+        </div>
+    </div>
+    <div id="techModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="techModalTitle">
+        <div class="modal-content large-modal" style="border-top-color:#7F8C8D;" tabindex="-1" id="techModalContent">
+            <button class="close-x" aria-label="Close" onclick="toggleModal('techModal', false)">&times;</button>
+            <h2 id="techModalTitle" style="color:#2C3E50; margin-top:0;">⚙️ Technical Game Mechanics</h2>
+            <div style="font-size: 0.9em; color: #4A3B32; text-align: left; line-height: 1.5;">
+                <p><strong>1. Taste Score:</strong> f(v) = a(v - h)&sup2; + k</p>
+                <p><strong>2. Conversion Rate:</strong> (Taste - (Price &times; Sensitivity)) / 100</p>
+                <p><strong>3. Anti-Exploit:</strong> Pricing >$20.00 triggers 100% loss + boycott.</p>
+            </div>
+            <button class="action-btn" style="background:#5C6A6B; margin-top:15px;" onclick="toggleModal('techModal', false)">Close Details</button>
+        </div>
+    </div>
+    <div id="trainingBanner" style="display:none; background:#D4AC0D; color:#3E2723; padding:8px; text-align:center; font-weight:bold; border-radius:8px; margin-bottom:10px;">🛡️ TRAINING: Losses are covered today!</div>
+    <div class="forecast-container" id="forecastBar"></div>
+    <div class="dashboard">
+        <div><strong style="color:#27AE60; font-size:1.1em;">The Math Mug</strong><br><span id="bankUI" class="pos large-text">$0.00</span></div>
+        <div class="dash-rival-text"><strong>Roaster Co.</strong> <br><span id="rivalBankUI" class="large-text">$0.00</span></div>
+        <div><strong>Day:</strong> <br><span id="roundUI" class="large-text">1</span></div>
+        <div class="buzz-text"><strong>Buzz:</strong> <br>+<span id="buzzUI" class="large-text">0</span></div>
+        <div style="text-align:right">
+            Goal: $15k<br>
+            <button class="sys-btn green" onclick="saveGame()">💾 Save</button>
+            <button class="sys-btn yellow" onclick="showLeaderboard()">🏆 Ranks</button>
+            <button class="sys-btn red" onclick="newGame()">🔄 Reset</button>
+        </div>
+        <div class="progress-bar-container"><div class="progress-bar"><div class="fill-player" id="fillPlayer"></div><div class="fill-rival" id="fillRival"></div></div></div>
+    </div>
+    <div class="main-layout">
+        <div class="panel">
+            <h3 class="panel-header">🛠️ Barista Station</h3>
+            <div class="cam-box" id="camScreen"><div class="cam-label">🔴 REC</div></div>
+            <div class="control-row">
+                <label class="control-label" for="tSlider"><span>Temp</span> <span id="tLabel" class="large-text">0.0</span></label>
+                <input type="range" id="tSlider" min="0" max="10" step="0.1" value="0" oninput="updateCalculations()">
+            </div>
+            <div class="control-row">
+                <label class="control-label" for="sSlider"><span>Sweetness</span> <span id="sLabel" class="large-text">0.0</span></label>
+                <input type="range" id="sSlider" min="0" max="10" step="0.1" value="0" oninput="updateCalculations()">
+            </div>
+            <div class="control-row">
+                <label class="control-label" for="iSlider"><span>Intensity</span> <span id="iLabel" class="large-text">0.0</span></label>
+                <input type="range" id="iSlider" min="0" max="10" step="0.1" value="0" oninput="updateCalculations()">
+            </div>
+            <div class="control-row no-border">
+                <label class="control-label" for="pVal" style="display:block; margin-bottom:5px;"><strong>Price ($)</strong></label>
+                <input type="number" id="pVal" value="5.00" step="0.1" oninput="updateCalculations()">
+            </div>
+            <div class="cost-card" style="margin-top: 5px;">
+                <div class="metric-row"><span>Unit Cost:</span> <strong id="unitCostUI">$0.00</strong></div>
+                <div class="metric-row"><span>Margin:</span> <strong id="unitMarginUI" class="pos">$0.00</strong></div>
+            </div>
+            <div class="cost-card" style="background: #EAFBFF; border-color: #2980b9;">
+                <div class="metric-row"><span>Beans:</span> <strong id="beanInvUI">0 units</strong></div>
+                <button class="action-btn" id="buyBulkBtn" style="background:#2980b9; padding:8px; font-size:0.85em; margin-top:5px;" onclick="buyBulkBeans()">Buy 500 Beans ($100)</button>
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <button class="action-btn" id="closeBtn" style="background:#5C6A6B; width: 40%; font-size: 0.9em;" onclick="closeShop()">CLOSE (-$150)</button>
+                <button class="action-btn" id="sellBtn" style="width: 60%;" onclick="executeTurn()">BREW & OPEN</button>
+            </div>
+        </div>
+        <div>
+            <div class="panel" style="padding: 15px;">
+                <h3 class="panel-header" style="margin: -15px -15px 15px -15px;">📋 Daily Data (<span id="obsWeatherUI"></span>)</h3>
+                <div id="mainScreenObs" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;"></div>
+                <button class="action-btn upgrade-btn" style="margin-top: 15px;" onclick="openUpgrades()">🔬 BUY RESEARCH</button>
+            </div>
+            <div class="panel" style="padding: 0; overflow: hidden;">
+                <h3 class="panel-header" style="margin:0;">📊 Ledger</h3>
+                <div class="table-container">
+                    <table id="ledgerTable">
+                        <thead><tr><th onclick="sortLedger('d')">Day</th><th>Weather</th><th>Recipe</th><th onclick="sortLedger('t')">Taste</th><th onclick="sortLedger('p')">Cust.</th><th onclick="sortLedger('n')">Profit</th></tr></thead>
+                        <tbody id="ledgerBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="footer-container">
+        <button class="nav-link" onclick="toggleModal('managerGuideModal', true)">📖 Guide</button>
+        <button class="nav-link" onclick="toggleModal('mathGuideModal', true)">🧮 Math</button>
+        <button class="nav-link tech" onclick="toggleModal('techModal', true)">⚙️ Tech Mechanics</button>
+    </div>
+    <script>
+        const defaultState = {
+            shopName: "The Math Mug", rivalMomentum: 0, bank: 0, rivalBank: 0, day: 1, forecast: [], weatherData: {},
+            unlocked: { 
+                Sunny: { t: {2:false,3:false,4:false}, s: {2:false,3:false,4:false}, i: {2:false,3:false,4:false} }, 
+                Heatwave: { t: {2:false,3:false,4:false}, s: {2:false,3:false,4:false}, i: {2:false,3:false,4:false} }, 
+                Rainy: { t: {2:false,3:false,4:false}, s: {2:false,3:false,4:false}, i: {2:false,3:false,4:false} }, 
+                marketResearch: false, financialBreakdown: false
+            },
+            activeResearchTab: 'Sunny', buzzStreak: 0, maxBuzz: 0, winGoal: 15000, rent: 150, ingredientCost: 0.50, bulkBeans: 0, bulkDays: 0,
+            sabotageSuccesses: 0, snobBlogBuff: 0, badBlogActive: false, priceGougeActive: false, snobRainyStreak: 0, ledgerData: [],
+            sortCol: 'd', sortAsc: false, dayPerfectRecipe: null, dayPerfectPrice: null
+        };
+        let state = JSON.parse(JSON.stringify(defaultState));
+        function rand(min, max, decimals = 1) { return +(Math.random() * (max - min) + min).toFixed(decimals); }
+        function generateEquation(hMin, hMax, kMin, kMax, aMin, aMax) {
+            let h = rand(hMin, hMax); let k = Math.floor(rand(kMin, kMax, 0)); let a = Math.floor(rand(aMin, aMax, 0));
+            const calcY = (x) => +(a * Math.pow(x - h, 2) + k).toFixed(1);
+            let secantPoints = []; let side = h > 5 ? -1 : 1;
+            for(let i=3; i>=1; i--) { 
+                let xVal = Math.max(0, Math.min(10, +(h + (side * i * 1.5)).toFixed(1)));
+                secantPoints.push({ x: xVal, y: calcY(xVal) });
+            }
+            secantPoints.sort((a,b) => a.x - b.x);
+            return { h, k, a, secantPoints, symPoints: [{ x: +(h - 3).toFixed(1), y: calcY(h - 3) }, { x: +(h + 3).toFixed(1), y: calcY(h + 3) }], std: `${a}x² ${(-2*a*h >= 0 ? '+'+(-2*a*h).toFixed(1) : (-2*a*h).toFixed(1))}x ${( (a*h*h+k) >= 0 ? '+'+(a*h*h+k).toFixed(1) : (a*h*h+k).toFixed(1))}` };
+        }
+        function initializeGame() {
+            state.weatherData = {
+                "Sunny": { t: generateEquation(4.5, 5.5, 45, 55, -2, -3), s: generateEquation(2.5, 3.5, 25, 35, -6, -8), i: generateEquation(4.5, 5.5, 18, 25, -15, -20), sens: 8, demand: 1.2, tempStr: "78°F" },
+                "Heatwave": { t: generateEquation(0.5, 2.0, 60, 70, -4, -6), s: generateEquation(6.5, 8.0, 20, 30, -8, -12), i: generateEquation(2.5, 4.0, 45, 55, -10, -15), sens: 4, demand: 3.5, tempStr: "96°F" },
+                "Rainy": { t: generateEquation(8.0, 9.5, 35, 45, -3, -5), s: generateEquation(4.5, 6.0, 35, 45, -5, -7), i: generateEquation(7.5, 9.0, 45, 55, -20, -25), sens: 14, demand: 1.1, tempStr: "52°F" }
+            };
+            state.forecast = ["Sunny", "Sunny", "Sunny", "Sunny", "Sunny"];
+            for(let j=0; j<2; j++) { state.forecast.push(["Sunny","Heatwave","Rainy"][Math.floor(Math.random()*3)]); }
+            if (state.day === 1) toggleModal('welcomeModal', true); else updateUI();
+        }
+        function startGame() { toggleModal('welcomeModal', false); updateUI(); }
+        function hardReset() { state = JSON.parse(JSON.stringify(defaultState)); initializeGame(); }
+        function toggleModal(id, show) { document.getElementById(id).style.display = show ? 'flex' : 'none'; }
+        function toggleBreakdown() {
+            const bd = document.getElementById('financialBreakdown');
+            bd.style.display = bd.style.display === 'none' ? 'block' : 'none';
+        }
+        function openUpgrades() { state.activeResearchTab = state.forecast[0]; switchResearchTab(state.activeResearchTab); toggleModal('upgradeModal', true); }
+        function switchResearchTab(tab) {
+            state.activeResearchTab = tab;
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('tab' + tab).classList.add('active');
+            const items = ['researchContainer', 'sabotageContainer', 'businessContainer'];
+            items.forEach(i => document.getElementById(i).style.display = 'none');
+            if(tab === 'Rival') { 
+                document.getElementById('sabotageContainer').style.display = 'block'; 
+                document.getElementById('sabWeatherUI').innerText = state.forecast[0];
+                document.getElementById('sabThresholdUI').innerText = Math.min(50, state.sabotageSuccesses * 10);
+            } else if (tab === 'Business') { 
+                document.getElementById('businessContainer').style.display = 'block'; renderBusiness(); 
+            } else { 
+                document.getElementById('researchContainer').style.display = 'grid'; renderResearch(); 
+            }
+        }
+        function renderBusiness() {
+            const container = document.getElementById('businessContainer');
+            container.innerHTML = `<div><button class="action-btn" onclick="buyBiz('financialBreakdown', 50)">Accountant ($50)</button></div>`;
+        }
+        function buyBiz(type, cost) { if(state.bank >= cost) { state.bank -= cost; state.unlocked[type] = true; updateUI(); renderBusiness(); } }
+        function renderResearch() {
+            const container = document.getElementById('researchContainer');
+            const items = [{id:'t', n:'Temp'}, {id:'s', n:'Sweet'}, {id:'i', n:'Intensity'}];
+            let html = '';
+            items.forEach(it => {
+                const tiers = state.unlocked[state.activeResearchTab][it.id]; const math = state.weatherData[state.activeResearchTab][it.id];
+                html += `<div class="research-item"><h4>${it.n}</h4>
+                    <button class="tier-btn" onclick="buyR('${it.id}', 2, 150)" ${tiers[2]?'disabled':''}>Symmetry ($150)</button>
+                    <button class="tier-btn" onclick="buyR('${it.id}', 3, 600)" ${tiers[3]?'disabled':''}>Standard ($600)</button>
+                    ${tiers[3] ? `<div class="reveal-math">y = ${math.std}</div>` : ''}
+                </div>`;
+            });
+            container.innerHTML = html;
+        }
+        function buyR(ing, tier, cost) { if(state.bank >= cost) { state.bank -= cost; state.unlocked[state.activeResearchTab][ing][tier] = true; updateUI(); renderResearch(); } }
+        function executeTurn() {
+            const wT = state.forecast[0]; const w = state.weatherData[wT];
+            let t = parseFloat(document.getElementById('tSlider').value);
+            let s = parseFloat(document.getElementById('sSlider').value);
+            let i = parseFloat(document.getElementById('iSlider').value);
+            let p = parseFloat(document.getElementById('pVal').value) || 0;
+            let taste = Math.max(0, Math.round((w.t.a * Math.pow(t - w.t.h, 2) + w.t.k) + (w.s.a * Math.pow(s - w.s.h, 2) + w.s.k) + (w.i.a * Math.pow(i - w.i.h, 2) + w.i.k)));
+            let pot = Math.round(taste * w.demand * 1.5) + (state.buzzStreak * 5);
+            let sales = p > 20 ? 0 : Math.min(pot, Math.round(pot * (Math.max(0, (taste - (p * w.sens)) / 100))));
+            let rev = p * sales; let cost = ((t*0.1) + (s*0.2) + (i*0.5)) * sales; let net = rev - cost - 150;
+            state.bank += net; state.rivalBank += 250 + state.rivalMomentum;
+            state.ledgerData.push({d: state.day, w: wT, recipe: `(${t}, ${s}, ${i})`, t: taste, p: pot, n: net});
+            document.getElementById('modalNet').innerText = `$${net.toFixed(2)}`;
+            toggleModal('reportModal', true);
+        }
+        function closeDailyReport() {
+            toggleModal('reportModal', false);
+            if(state.bank >= 15000) toggleModal('winModal', true);
+            else if(state.rivalBank >= 15000) toggleModal('lossModal', true);
+            state.day++; state.forecast.shift(); state.forecast.push(["Sunny","Heatwave","Rainy"][Math.floor(Math.random()*3)]);
+            updateUI();
+        }
+        function updateUI() {
+            document.getElementById('bankUI').innerText = `$${state.bank.toFixed(2)}`;
+            document.getElementById('roundUI').innerText = state.day;
+            const bar = document.getElementById('forecastBar'); bar.innerHTML = '';
+            state.forecast.forEach((type, idx) => {
+                const day = document.createElement('div'); day.className = `forecast-day ${idx===0?'active':''}`;
+                day.innerHTML = `${type}<br>${state.weatherData[type].tempStr}`; bar.appendChild(day);
+            });
+            renderLedger();
+        }
+        function renderLedger() {
+            const tb = document.getElementById('ledgerBody'); tb.innerHTML = '';
+            state.ledgerData.forEach(r => {
+                tb.innerHTML += `<tr><td>${r.d}</td><td>${r.w}</td><td>${r.recipe}</td><td>${r.t}</td><td>${r.p}</td><td class="${r.n>=0?'pos':'neg'}">$${r.n.toFixed(2)}</td></tr>`;
+            });
+        }
+        function updateCalculations() {
+            let t = parseFloat(document.getElementById('tSlider').value); document.getElementById('tLabel').innerText = t.toFixed(1);
+            let s = parseFloat(document.getElementById('sSlider').value); document.getElementById('sLabel').innerText = s.toFixed(1);
+            let i = parseFloat(document.getElementById('iSlider').value); document.getElementById('iLabel').innerText = i.toFixed(1);
+        }
+        function saveGame() { try { localStorage.setItem('coffeeL', JSON.stringify(state)); alert("Saved!"); } catch(e){} }
+        function newGame() { if(confirm("Reset?")) hardReset(); }
+        initializeGame();
+    </script>
+</body>
+</html>
